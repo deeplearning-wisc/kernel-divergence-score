@@ -69,30 +69,30 @@ class Profiler(object):
 
     def profile(self, args, model, dataset, pre_embs, post_embs):
         
-        for lidx in tqdm(pre_embs.keys()):
+        # for lidx in tqdm(pre_embs.keys()):
+        #     print(lidx)
+        # Prepare Embeddings and Kernels 
+        pre_emb = pre_embs[32]
+        if args.cpu_profiler:
+            pre_emb = pre_emb.cpu()
+        pre_emb_normed = pre_emb / torch.norm(pre_emb, dim=1, keepdim=True)
 
-            # Prepare Embeddings and Kernels 
-            pre_emb = pre_embs[lidx]
-            if args.cpu_profiler:
-                pre_emb = pre_emb.cpu()
-            pre_emb_normed = pre_emb / torch.norm(pre_emb, dim=1, keepdim=True)
+        post_emb = post_embs[32]
+        if args.cpu_profiler:
+            post_emb = post_emb.cpu()
+        post_emb_normed = post_emb / torch.norm(post_emb, dim=1, keepdim=True)
+        
+        if args.gamma is None :
+            gamma1, gamma2 = estimate_gamma(pre_emb_normed), estimate_gamma(post_emb_normed)
+        else :
+            gamma1 = gamma2 = args.gamma
+        
+        pre_K = rbf_kernel(pre_emb_normed, gamma=gamma1)
+        post_K = rbf_kernel(post_emb_normed, gamma=gamma2)
 
-            post_emb = post_embs[lidx]
-            if args.cpu_profiler:
-                post_emb = post_emb.cpu()
-            post_emb_normed = post_emb / torch.norm(post_emb, dim=1, keepdim=True)
-            
-            if args.gamma is None :
-                gamma1, gamma2 = estimate_gamma(pre_emb_normed), estimate_gamma(post_emb_normed)
-            else :
-                gamma1 = gamma2 = args.gamma
-            
-            pre_K = rbf_kernel(pre_emb_normed, gamma=gamma1)
-            post_K = rbf_kernel(post_emb_normed, gamma=gamma2)
-
-            # Compute Kernel Divergence Score
-            score = -F.kl_div(post_K.log(), pre_K, reduction='none').abs().sum() / pre_K.sum()**0.5
-            kernel_divergence_score = score.item()
+        # Compute Kernel Divergence Score
+        score = -F.kl_div(post_K.log(), pre_K, reduction='none').abs().sum() / pre_K.sum()**0.5
+        kernel_divergence_score = score.item()
 
 
         ###### Save

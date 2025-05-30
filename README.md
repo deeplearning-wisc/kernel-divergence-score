@@ -13,6 +13,8 @@ conda env create -f environment.yml
 conda activate kds
 ```
 
+Finally, create a "token" file right outside the ```src/``` directory (note that there shouldn't be any extension in the file name), containing your huggingface credential token.
+
 
 ## Experiments
 
